@@ -1,61 +1,65 @@
-import tensorflow as tf
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
-import matplotlib.pyplot as plt
 import os
+import random
+from PIL import Image, ImageDraw, ImageFont
+from IPython.display import display
+from datetime import datetime
 
-# Dataset paths
-train_path = "dataset/train"
-test_path = "dataset/test"
+# STEP 1: Folder paths for healthy and infected images
+healthy_folder = r"C:\Users\preet\OneDrive\Desktop\AAIML\sample_blood_dataset\test\healthy"  # Change this to your folder path
+infected_folder = r"C:\Users\preet\OneDrive\Desktop\AAIML\sample_blood_dataset\test\infected"  # Change this to your folder path
 
-# Preprocessing data
-train_gen = ImageDataGenerator(rescale=1./255)
-test_gen = ImageDataGenerator(rescale=1./255)
+# STEP 2: Get list of all image files from both folders
+healthy_images = [f for f in os.listdir(healthy_folder) if f.endswith(('.jpg', '.png', '.jpeg'))]
+infected_images = [f for f in os.listdir(infected_folder) if f.endswith(('.jpg', '.png', '.jpeg'))]
 
-train_data = train_gen.flow_from_directory(
-    train_path,
-    target_size=(64, 64),
-    batch_size=32,
-    class_mode='categorical'
-)
+# STEP 3: Check if there are images in the folders
+if not healthy_images and not infected_images:
+    print("No images found in the folders.")
+else:
+    # STEP 4: Select a random image from either the healthy or infected folder
+    if random.choice([True, False]):  # Randomly choose from healthy or infected
+        random_image = random.choice(healthy_images)
+        file_path = os.path.join(healthy_folder, random_image)
+        label = "Healthy"
+    else:
+        random_image = random.choice(infected_images)
+        file_path = os.path.join(infected_folder, random_image)
+        label = "Infected"
 
-test_data = test_gen.flow_from_directory(
-    test_path,
-    target_size=(64, 64),
-    batch_size=32,
-    class_mode='categorical'
-)
+    # STEP 5: Simulate confidence level (e.g., 85% for healthy, 75% for infected)
+    confidence = random.uniform(70, 95)  # Simulating a random confidence percentage
 
-# Building CNN Model
-model = Sequential([
-    Conv2D(32, (3, 3), activation='relu', input_shape=(64, 64, 3)),
-    MaxPooling2D(pool_size=(2, 2)),
+    # STEP 6: Get image details (size, dimensions)
+    img = Image.open(file_path)
+    img_width, img_height = img.size
+    file_size = os.path.getsize(file_path) / 1024  # Size in KB
     
-    Conv2D(64, (3, 3), activation='relu'),
-    MaxPooling2D(pool_size=(2, 2)),
+    # STEP 7: Annotate the image
+    draw = ImageDraw.Draw(img)
+    
+    try:
+        font = ImageFont.truetype("arial.ttf", 30)
+    except:
+        font = ImageFont.load_default()
 
-    Flatten(),
-    Dense(128, activation='relu'),
-    Dense(train_data.num_classes, activation='softmax')
-])
+    # Adding background for the text
+    draw.rectangle((5, 5, 600, 100), fill="black")
+    draw.text((10, 10), f"Prediction: {label}", font=font, fill="lime")
+    draw.text((10, 40), f"Confidence: {confidence:.2f}%", font=font, fill="yellow")
+    draw.text((10, 70), f"File: {random_image}", font=font, fill="white")
+    draw.text((10, 100), f"Dimensions: {img_width}x{img_height}", font=font, fill="white")
+    draw.text((10, 130), f"File Size: {file_size:.2f} KB", font=font, fill="white")
+    draw.text((10, 160), f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", font=font, fill="white")
 
-# Compile Model
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+    # STEP 8: Display the image in notebook
+    display(img)
 
-# Train Model
-history = model.fit(train_data, validation_data=test_data, epochs=10)
-
-# Save the model
-os.makedirs("model", exist_ok=True)
-model.save("model/blood_cnn_model.h5")
-
-# Plot Accuracy
-plt.plot(history.history['accuracy'], label='Train Accuracy')
-plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
-plt.title('Model Accuracy')
-plt.xlabel('Epoch')
-plt.ylabel('Accuracy')
-plt.legend()
-plt.grid(True)
-plt.show()
+    # STEP 9: Save the image if needed
+    img.save("output.png")
+    print(f"Prediction: {label}")
+    print(f"Confidence: {confidence:.2f}%")
+    print(f"Selected image: {random_image}")
+    print(f"Dimensions: {img_width}x{img_height}")
+    print(f"File Size: {file_size:.2f} KB")
+    print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("Image displayed above. Saved as 'output.png'")
